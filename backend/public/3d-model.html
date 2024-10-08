@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Building Model</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <input type="file" id="imageUpload" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Placeholder for 3D model loading
+    const geometry = new THREE.BoxGeometry(1, 1, 1); // Example geometry
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+
+    camera.position.z = 5;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      cube.rotation.x += 0.01;
+      cube.rotation.y += 0.01;
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    function calculateArea(geometry) {
+      let area = 0;
+      geometry.faces.forEach(face => {
+        const vA = geometry.vertices[face.a];
+        const vB = geometry.vertices[face.b];
+        const vC = geometry.vertices[face.c];
+        area += calculateTriangleArea(vA, vB, vC);
+      });
+      return area;
+    }
+
+    function calculateTriangleArea(vA, vB, vC) {
+      const ab = vA.distanceTo(vB);
+      const ac = vA.distanceTo(vC);
+      const bc = vB.distanceTo(vC);
+      const s = (ab + ac + bc) / 2;
+      return Math.sqrt(s * (s - ab) * (s - ac) * (s - bc));
+    }
+
+    function saveArea(buildingId, area) {
+      fetch('/save-area', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ buildingId, area }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Area saved:', data);
+      })
+      .catch(error => {
+        console.error('Error saving area:', error);
+      });
+    }
+
+    document.getElementById('imageUpload').addEventListener('change', function(event) {
+      const formData = new FormData();
+      formData.append('image', event.target.files[0]);
+
+      fetch('/upload-image', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Image uploaded:', data.imagePath);
+        // Example logic to calculate area after image processing
+        // const geometry = ...; // Create geometry from image
+        // const area = calculateArea(geometry);
+        // const buildingId = ...; // Retrieve building ID
+        // saveArea(buildingId, area);
+      })
+      .catch(error => {
+        console.error('Error uploading image:', error);
+      });
+    });
+  </script>
+</body>
+</html>
